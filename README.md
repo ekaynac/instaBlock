@@ -167,4 +167,4 @@ Bu bilgi, engelleme işlemlerinin tamamlanma süresine dair tahmini bir zaman ve
 
 ## İletişim
 
-Herhangi bir sorun, öneri veya katkı için lütfen [email@example.com](mailto:email@example.com) adresine ulaşın.
+Herhangi bir sorun, öneri veya katkı için lütfen [tensorenes@gmail.com](mailto:tensorenes@gmail.com) adresine ulaşın.
