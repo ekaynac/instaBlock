@@ -75,10 +75,12 @@ Bu proje, instagrapi kütüphanesini kullanarak Instagram hesaplarını otomatik
 
 ### Giriş Parametreleri
 
-- `--username`: Instagram kullanıcı adınız (giriş yapmak için).
+- `--username`: Instagram kullanıcı adınız (giriş yapmak için). Alternatif olarak, `boykot.py` ile aynı dizinde `username.txt` adında bir dosya oluşturup Instagram kullanıcı adınızı bu dosyanın ilk satırına yazabilirsiniz. Script otomatik olarak bu kullanıcı adını kullanacaktır. Eğer hem `username.txt` dosyası mevcutsa hem de `--username` argümanı kullanılırsa, komut satırı argümanı öncelikli olacaktır. Örneğin: İçeriği `sizin_insta_kullanici_adiniz` olan bir `username.txt` dosyası oluşturun.
 - `--blacklist`: Engellenecek hesapların listesinin bulunduğu dosyanın yolu (TXT veya CSV).
 - `--init-blacklist`: Hedef hesabın takip ettiklerinden başlangıç blacklist'i oluşturmak için (örneğin, bir URL veya kullanıcı adı).
 - `--request-limit`: Saatlik API istek limiti (varsayılan: 100).
+- `--cooldown-blocks`: Kaç başarılı engelleme işleminden sonra uzun bir bekleme (cooldown) yapılacağını belirler. (Varsayılan: 50)
+- `--cooldown-duration`: Cooldown periyodunun saniye cinsinden süresini belirler. (Varsayılan: 600 saniye, yani 10 dakika)
 
 ### Blacklist Dosyası
 
@@ -126,6 +128,12 @@ Script, belirtilen dosyadaki hesapları engelleyecek, API isteklerini persist ed
   - Eğer 100 veya daha fazla API isteği yapılırsa, engelleme işlemleri durdurulur ve her 1 dakikada JSON dosyası kontrol edilerek istek sayısı 50’ye düştüğünde işlemler devam eder.
   - Her 1 dakikada API isteği sayısı loglanır.
 
+- **Gelişmiş API Davranışı:**
+  İnsan davranışlarını daha iyi taklit etmek ve tespit riskini azaltmak için, script artık engelleme eylemlerinden sonra sabit gecikmeler yerine rastgeleleştirilmiş gecikmeler kullanmaktadır (örneğin, başarılı engellemelerden sonra 25-40 saniye, başarısız engellemelerden sonra 50-75 saniye beklenir).
+  Ek olarak, daha uzun aralar vermek için yapılandırılabilir bir bekleme (cooldown) periyodu eklenmiştir:
+  *   `--cooldown-blocks`: Kaç başarılı engelleme işleminden sonra uzun bir bekleme (cooldown) yapılacağını belirler. (Varsayılan: 50)
+  *   `--cooldown-duration`: Cooldown periyodunun saniye cinsinden süresini belirler. (Varsayılan: 600 saniye, yani 10 dakika)
+
 ## Hesap Güvenliği ve Alınan Önlemler
 
 - **Challenge Yönetimi:**  
@@ -168,3 +176,20 @@ Bu bilgi, engelleme işlemlerinin tamamlanma süresine dair tahmini bir zaman ve
 ## İletişim
 
 Herhangi bir sorun, öneri veya katkı için lütfen [tensorenes@gmail.com](mailto:tensorenes@gmail.com) adresine ulaşın.
+
+## Testleri Çalıştırmak
+
+Bu proje, script'in işlevselliğini ve güvenilirliğini sağlamak için bir test paketi içerir.
+
+**Test İçin Gerekli Bağımlılıklar:**
+Eğer henüz yüklemediyseniz, `instagrapi` ve `Pillow` kütüphanelerine ihtiyacınız olacaktır:
+```bash
+pip install instagrapi Pillow
+```
+
+**Testleri Çalıştırma:**
+Terminalinizde script'in ana dizinine gidin ve aşağıdaki komutu çalıştırın:
+```bash
+python -m unittest test_boykot.py
+```
+Doğru yapılandırılmış bir ortamda tüm testlerin başarıyla geçmesi gerekmektedir. Sorunla karşılaşırsanız, tüm bağımlılıkların yüklü olduğundan ve `boykot.py` script'inin aynı anda çalışmadığından emin olun.

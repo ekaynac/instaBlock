@@ -1,6 +1,8 @@
 import os
 import csv
+import configparser
 import time
+import random
 import json
 import logging
 import argparse
@@ -87,7 +89,7 @@ def check_rate_limit(remaining_to_block, request_limit):
             if current_count <= request_limit // 2 or current_count <= remaining_to_block:
                 logging.info("API isteği sayısı sınırın yarısına veya engellenecek hesap sayısına düştü. Engelleme işlemlerine devam ediliyor.")
                 break
-            time.sleep(60)
+            time.sleep(random.uniform(50, 75))
 
 def extract_username(input_value):
     if input_value.startswith("http"):
@@ -220,16 +222,31 @@ def create_initial_blacklist(client, target_account, request_limit):
         logging.error(f"{target_account} için takip listesini alırken hata oluştu: {e}")
 
 def main():
+    username_from_file = None
+    if os.path.exists('username.txt'):
+        try:
+            with open('username.txt', 'r', encoding='utf-8') as f:
+                username_from_file = f.readline().strip()
+            if not username_from_file: # Handles empty file
+                username_from_file = None
+                logging.warning("username.txt exists but is empty.")
+        except IOError as e:
+            logging.error(f"Error reading username.txt: {e}")
+            username_from_file = None
+
     parser = argparse.ArgumentParser(
         description="Instagram Engelleme Aracı (CLI) - instagrapi kullanılarak\n"
                     "Modlar:\n"
                     "• Engelleme modu: Belirtilen blacklist dosyasındaki hesapları engeller.\n"
                     "• Initial Blacklist modu: Hedef hesabın takip ettiklerinden blacklist oluşturur."
     )
-    parser.add_argument('--username', required=True, help="Instagram kullanıcı adınız (giriş için)")
+    # Removed required=True, will check for username presence later
+    parser.add_argument('--username', default=username_from_file, help="Instagram kullanıcı adınız (giriş için). If not provided, script will try to read from 'username.txt'.")
     parser.add_argument('--blacklist', help="Engellenecek hesapların listesinin bulunduğu dosya (TXT veya CSV)")
     parser.add_argument('--init-blacklist', help="Hedef hesabın takip ettiklerinden başlangıç blacklist'i oluştur (URL veya kullanıcı adı)")
     parser.add_argument('--request-limit', type=int, default=100, help="Saatlik API istek limiti (varsayılan: 100)")
+    parser.add_argument('--cooldown-blocks', type=int, default=50, help="Kaç başarılı engelleme sonrası cooldown uygulanacağı (varsayılan: 50)")
+    parser.add_argument('--cooldown-duration', type=int, default=600, help="Cooldown süresi saniye cinsinden (varsayılan: 600 saniye / 10 dakika)")
     args = parser.parse_args()
 
     password = getpass.getpass(prompt="Instagram şifrenizi giriniz: ")
@@ -292,10 +309,16 @@ def main():
             successful_blocks += 1
             if successful_blocks % 10 == 0:
                 log_remaining_info(blacklist, already_blocked, average_time=30)
-            time.sleep(30)  # Başarılı bloklamadan sonra 30 saniye bekle
+
+                # Cooldown logic
+                if successful_blocks > 0 and successful_blocks % args.cooldown_blocks == 0:
+                    logging.info(f"Başarıyla {args.cooldown_blocks} hesap engellendi. Cooldown periyodu başlıyor: {args.cooldown_duration // 60} dakika.")
+                    time.sleep(args.cooldown_duration)
+                else:
+                    time.sleep(random.uniform(25, 40))  # Başarılı bloklamadan sonra rastgele bekle
         else:
-            logging.warning(f"{account} engellenemedi. 60 saniye sonra tekrar deneniyor.")
-            time.sleep(60)
+            logging.warning(f"{account} engellenemedi. Rastgele bir süre sonra tekrar deneniyor.")
+            time.sleep(random.uniform(50, 75)) # Başarısız bloklamadan sonra rastgele bekle
 
     while True:
         logging.info("Blacklist dosyası yeniden okunuyor...")
@@ -315,13 +338,19 @@ def main():
                 successful_blocks += 1
                 if successful_blocks % 10 == 0:
                     log_remaining_info(blacklist, already_blocked, average_time=30)
-                time.sleep(30)  # Başarılı bloklamadan sonra 30 saniye bekle
+            
+            # Cooldown logic
+            if successful_blocks > 0 and successful_blocks % args.cooldown_blocks == 0:
+                logging.info(f"Başarıyla {args.cooldown_blocks} hesap engellendi. Cooldown periyodu başlıyor: {args.cooldown_duration // 60} dakika.")
+                time.sleep(args.cooldown_duration)
             else:
-                logging.warning(f"{account} engellenemedi. 60 saniye sonra tekrar deneniyor.")
-                time.sleep(60)
+                time.sleep(random.uniform(25, 40))  # Başarılı bloklamadan sonra rastgele bekle
+        else: # This 'else' corresponds to 'if success:'
+            logging.warning(f"{account} engellenemedi. Rastgele bir süre sonra tekrar deneniyor.")
+            time.sleep(random.uniform(50, 75)) # Başarısız bloklamadan sonra rastgele bekle
 
-        logging.info("Blacklist kontrolü tamamlandı. 5 dakika sonra yeniden denenecek.")
-        time.sleep(300)
+        logging.info("Blacklist kontrolü tamamlandı. Rastgele bir süre sonra yeniden denenecek.")
+        time.sleep(random.uniform(240, 360)) # 4-6 dakika arası rastgele bekle
 
 if __name__ == "__main__":
     main()
